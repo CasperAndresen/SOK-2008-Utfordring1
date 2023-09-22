@@ -1,0 +1,175 @@
+---
+title: "30_sok_2008_h23_utf1"
+author: "30"
+format: pdf
+editor: visual
+---
+
+```{r, warning=FALSE, message=FALSE}
+rm(list=ls())
+library(tidyverse)
+library(rjstat)
+library(httr)
+library(ggrepel)
+options(readr.show_col_types = FALSE)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+```{r, echo=FALSE}
+
+#Henter data fra SSB
+
+url <- "https://data.ssb.no/api/v0/no/table/04544/"
+
+query <- '{
+  "query": [
+    {
+      "code": "Kjonn",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "1",
+          "2"
+        ]
+      }
+    },
+    {
+      "code": "Yrkesstatus",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "00"
+        ]
+      }
+    },
+    {
+      "code": "ContentsCode",
+      "selection": {
+        "filter": "item",
+        "values": [
+          "FaktiskArbeidstid"
+        ]
+      }
+    }
+  ],
+  "response": {
+    "format": "json-stat2"
+  }
+}'
+
+hent_indeks.tmp <- url %>%
+  POST(body = query, encode = "json")
+
+kjonn <-  hent_indeks.tmp %>%
+  content("text") %>%
+  fromJSONstat() %>%
+  as_tibble()
+```
+
+```{r}
+#Velger ut kolonnene jeg ønsker og konverterer årene til numeric
+kjonn <- kjonn %>%
+  select(c(1,4,5)) %>%
+  mutate(år = as.numeric(år))
+```
+
+```{r}
+#Plotter figuren
+kjonn %>%
+  ggplot(aes(x=år, y=value, color=kjønn)) +
+  labs(title = "Kjønnsforskjeller i valg av arbeidstimer for menn og kvinner",
+       x = "År", y = "Antall arbeidstimer") +
+  geom_line()
+```
+
+### Kjønnsforskjeller i valg av arbeidstimer for menn og kvinner
+
+I figuren kommer det tydelig frem at menn har flere arbeidstider enn kvinner. Menn har tradisjonelt hatt flere timer, noe som kan skyldes mange ting. De tradisjonelle kjønnsrollene setter gjerne kvinnen til å ta seg av pliktene i hjemmet som omsorg- og husarbeid. Kvinnen er også den som må gå gjennom graviditet og fødsel, noe som kanskje minsker arbeidstilbudet. Det er også forskjell i valg av yrke blant kjønnene. Menn har tradisjonelt oftere valgt yrker med lengre arbeidsdager som yrkessjåfør, industriarbeid osv, mens kvinner oftere velger yrke som lærer og helsefagarbeider.
+
+I figuren ser vi også at det er en nedgang i arbeidstimer hos menn. Modernisering, politikk og større fokus på menneskets velvære har ført til kortere arbeidsdager i nyere tid. Et større fokus på å minske kjønnsdiskriminering og fjerne de tradisjonelle kjønnsrollene har ført de to kjønnene nærmere hverandre.
+
+```{r}
+#Henter data fra github
+women <- read_delim("https://raw.githubusercontent.com/uit-sok-2008-h23/uit-sok-2008-h23.github.io/main/assets/women.csv", 
+    delim = ";", escape_double = FALSE, trim_ws = TRUE)
+```
+
+```{r}
+#Plotter figurene
+women %>%
+  ggplot(aes(x = tot_full_rate, y = fem_emp_rate_0_2)) +
+  labs(title = "Sammenhengen mellom lengde på betalt foreldrepermisjon \nog yrkesdeltakelse blant kvinner",
+       subtitle = "Sysselsetting blant kvinner med barn i alderen 0-2 år",
+       x = "Uker med 100% støtte", y = "sysselsetting i %") +
+  geom_point() +
+  geom_text_repel(aes(label = country), size = 3) +
+  geom_smooth()
+```
+
+```{r}
+women %>%
+  ggplot(aes(x = tot_full_rate, y = fem_emp_rate_6_14)) +
+  labs(title = "Sammenhengen mellom lengde på betalt foreldrepermisjon \nog yrkesdeltakelse blant kvinner",
+       subtitle = "Sysselsetting blant kvinner med barn i alderen 6-14 år",
+       x = "Uker med 100% støtte", y = "sysselsetting i %") +
+  geom_point() +
+  geom_text_repel(aes(label = country), size = 3) +
+  geom_smooth()
+```
+
+### Gunstige permisjonsordninger ved fødsel sikrer høy yrkesdeltakelse blant kvinner på lang sikt
+
+I den første figuren ser vi at landene med mindre uker støtte har en høyere andel kvinner tilbake i arbeid, mens de landene med lengre støtte har færre tilbake i arbeid. Dette er forutsigbar oppførsel da de med tilgjengelig lenger støtte tar i bruk det tilbudet de er gitt.\
+I den neste figuren ser vi at landene med kortere støtte har en veldig svak økning i andel kvinner tilbake i arbeid, mens de som har gunstigere støtte har en mye større andel tilbake i arbeid. Dette forteller oss at støtteordningen fungerer.
+
+### Hvorfor høy yrkesdeltakelse blant norske kvinner og høye barnetall er viktig for at den norske velferdsmodellen skal være økonomisk bærekraftig
+
+Dette spiller en viktig rolle fordi det bidrar til å styrke arbeidskraften og bidrar til økte skatteinntekter som er viktig for å finansiere velferdsmodellen.
+
+Norge, i likhet med mange andre vestlige land, har en eldrebølge på vei. Mangel på arbeidskraft, og en aldrende befolkning, vil være en stor utfordring for velferdsmodellen. Da vil høy yrkesdeltakelse blant begge kjønnene være viktig for å kunne for å kunne ivareta økonomisk vekst.
+
+```{r}
+#Henter data fra eurostat. Spesifiserer også hvilke kolonner jeg ikke trenger
+helseutgifter <- read_csv("https://ec.europa.eu/eurostat/api/dissemination/sdmx/2.1/data/HLTH_SHA11_HF/?format=SDMX-CSV&lang=en&label=label_only", 
+    col_types = cols(DATAFLOW = col_skip(), 
+        `LAST UPDATE` = col_skip(), freq = col_skip(), 
+        OBS_FLAG = col_skip()))
+```
+
+```{r}
+#Filtrerer ut dataene jeg ønsker
+helseutgifter <- helseutgifter %>%
+  filter(TIME_PERIOD == 2019) %>%
+  filter(icha11_hf == "Household out-of-pocket payment") %>%
+  filter(unit %in% c("Percentual share of total current health expenditure (CHE)",
+                     "Purchasing power standard (PPS) per inhabitant")) %>%
+  filter(!grepl('Liechtenstein|Bosnia|Euro', geo))
+```
+
+```{r}
+helseutgifter_wide <- helseutgifter %>%
+  pivot_wider(names_from = unit, values_from = OBS_VALUE)
+```
+
+```{r}
+helseutgifter_wide %>%
+  ggplot(aes(x = `Percentual share of total current health expenditure (CHE)`,
+             y = `Purchasing power standard (PPS) per inhabitant`)) +
+  labs(title = "Sammenheng mellom PPS per innbygger og CHE",
+       subtitle = "Europeiske land. 2019") +
+  geom_point() +
+  geom_smooth (alpha=0.3, size=0) +
+  geom_text_repel(aes(label = geo), size = 3)
+```
+
+### Hvordan økt egenbetaling påvirker helsetjenesteforbruk
+
+Figuren viser oss hvilken prosent av kjøpekraften en innbygger i de forskjellige europeiske landene bruker i løpende helseutgifter på ett år. Vi ser at landene med høyere kjøpekraft betaler en høyere egenandel. Land hvor de betaler mindre skatt får også mindre igjen i dekkning av helsetjenester. Individer som tar sjeldent i bruk helsetjenester tjener mer på dette.
+
+Økt egenandel vil føre til økt effektivitet ettersom det fører til mindre press på helsetjenestene, men dette fører også til urettferdighet i samfunnet da de fattigste som trenger helsehjelp ikke vil kunne få det. Dette skaper et større skille i samfunnet.
+
+Om vi går over til en mer privatisert helsetjeneste kan det oppstå hull i dekningen. Det kan bli et overflod av de tjenestene som det er mest penger å tjene på, mens det kan bli mangel på andre like viktige tilbud hvor marginene er mindre. Et offentlig tilbud sørger for god dekning.
+
+#### Bruk av KI i denne oppgaven
+
+I denne oppgaven har det ikke blitt brukt KI
